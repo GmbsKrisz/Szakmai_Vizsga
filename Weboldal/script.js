@@ -455,7 +455,7 @@ window.addEventListener('load', () => {
 });
 
 // ===== ANALYTICS PLACEHOLDER =====
-console.log('%c🚚 RizsR Fuvarozás - Website Loaded!', 'color: #ff6b35; font-size: 20px; font-weight: bold;');
+console.log('%c🚚 RizseRR Fuvarozás - Website Loaded!', 'color: #ff6b35; font-size: 20px; font-weight: bold;');
 console.log('%cPremium Transport Solutions', 'color: #0099ff; font-size: 14px;');
 console.log('%cWebsite by Antigravity AI', 'color: #888; font-size: 12px;');
 
