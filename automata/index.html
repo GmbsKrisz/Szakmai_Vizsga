@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Switch Konfigurátor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+      gap: 24px;
+    }
+
+    .title {
+      text-align: center;
+    }
+
+    .title h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .title p {
+      color: #8b949e;
+      font-size: .9rem;
+      margin-top: 4px;
+    }
+
+    /* ── Nagy gomb ── */
+    #runBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 260px;
+      padding: 18px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #238636, #1f6feb);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 30px rgba(56, 139, 253, .3);
+      transition: transform .15s, opacity .2s;
+    }
+
+    #runBtn:hover {
+      transform: translateY(-2px);
+      opacity: .92;
+    }
+
+    #runBtn:active {
+      transform: translateY(0);
+    }
+
+    #runBtn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #runBtn.loading .spinner {
+      display: block;
+    }
+
+    /* ── Banner ── */
+    #banner {
+      border-radius: 10px;
+      padding: 14px 22px;
+      font-weight: 600;
+      font-size: .92rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+
+    #banner.ok {
+      background: rgba(63, 185, 80, .12);
+      border: 1px solid rgba(63, 185, 80, .4);
+      color: #3fb950;
+      display: flex;
+    }
+
+    #banner.error {
+      background: rgba(218, 54, 51, .12);
+      border: 1px solid rgba(218, 54, 51, .4);
+      color: #f85149;
+      display: flex;
+    }
+
+    /* ── Log panel ── */
+    #log {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px;
+      width: 100%;
+      max-width: 640px;
+      min-height: 180px;
+      max-height: 420px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      line-height: 1.8;
+      display: none;
+    }
+
+    #log.visible {
+      display: block;
+    }
+
+    .l-info {
+      color: #8b949e;
+    }
+
+    .l-ok {
+      color: #3fb950;
+      font-weight: 600;
+    }
+
+    .l-err {
+      color: #f85149;
+      font-weight: 600;
+    }
+
+    .l-out {
+      color: #79c0ff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 3px;
+    }
+
+    .hint {
+      font-size: .75rem;
+      color: #484f58;
+      text-align: center;
+    }
+
+    .hint code {
+      background: #161b22;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #8b949e;
+    }
+
+    /* ── Űrlap elemek ── */
+    .form-group {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-row label.main-label {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    .form-row label.sub-label {
+      font-size: 0.82rem;
+      color: #8b949e;
+      margin-top: -4px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select {
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder {
+      color: #484f58;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%238b949e%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px top 50%;
+      background-size: 10px auto;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="title">
+    <h1>🔧 Switch Konfigurátor</h1>
+    <p>Állítsd be a paramétereket, majd indítsd el a konfigurálást</p>
+  </div>
+
+  <div class="form-group">
+    <div class="form-row">
+      <label class="main-label" for="device_type">Eszköz típusa</label>
+      <select id="device_type">
+        <option value="cisco_ios_telnet">Cisco IOS (Telnet)</option>
+        <option value="cisco_s300">Cisco SG300 (SSH)</option>
+        <option value="cisco_s300_telnet">Cisco SG300 (Telnet)</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="main-label" for="cfg_hostname">Új Hostname (opcionális)</label>
+      <input type="text" id="cfg_hostname" placeholder="Pl. SW-Kozpont-01">
+    </div>
+
+    <div class="form-row">
+      <label class="main-label" for="cfg_vlans">Létrehozandó VLAN-ok (opcionális)</label>
+      <label class="sub-label">Vesszővel elválasztva (pl. 10, 20, 100)</label>
+      <input type="text" id="cfg_vlans" placeholder="10, 20, 30...">
+    </div>
+
+    <div class="form-row">
+      <label class="main-label" for="cfg_ports">Trunk/No shut Portok (opcionális)</label>
+      <label class="sub-label">Vesszővel elválasztva (pl. gi1, gi2, fa0/2)</label>
+      <input type="text" id="cfg_ports" placeholder="GigabitEthernet1, GigabitEthernet2...">
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="main-label" for="cfg_pass_enable">Enable Jelszó</label>
+        <input type="password" id="cfg_pass_enable" placeholder="(Változatlan)">
+      </div>
+      <div class="form-row">
+        <label class="main-label" for="cfg_pass_console">Console Jelszó</label>
+        <input type="password" id="cfg_pass_console" placeholder="(Változatlan)">
+      </div>
+      <div class="form-row">
+        <label class="main-label" for="cfg_pass_vty">SSH/Telnet Jelszó</label>
+        <input type="password" id="cfg_pass_vty" placeholder="(Változatlan)">
+      </div>
+    </div>
+  </div>
+
+  <button id="runBtn" onclick="run()">
+    <div class="spinner"></div>
+    <span id="label">⚡ Konfigurálás indítása</span>
+  </button>
+
+  <div id="banner"></div>
+  <div id="log"></div>
+
+  <p class="hint">A háttérben futnia kell: <code>python app.py</code></p>
+
+  <script>
+    async function run() {
+      const btn = document.getElementById('runBtn');
+
+      // Összeállítjuk a payload-ot a szövegmezőkből
+      const payload = {
+        device_type: document.getElementById('device_type').value,
+        config: {
+          hostname: document.getElementById('cfg_hostname').value.trim(),
+          vlans: document.getElementById('cfg_vlans').value.trim(),
+          ports: document.getElementById('cfg_ports').value.trim(),
+          pass_enable: document.getElementById('cfg_pass_enable').value,
+          pass_console: document.getElementById('cfg_pass_console').value,
+          pass_vty: document.getElementById('cfg_pass_vty').value
+        }
+      };
+
+      // Van-e beállítva legalább egy dolog?
+      const hasConfig = Object.values(payload.config).some(val => val !== '');
+      if (!hasConfig) {
+        showBanner('error', '❌ Kérlek tölts ki legalább egy konfigurációs paramétert vagy jelszót!');
+        return;
+      }
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+      document.getElementById('label').textContent = 'Fut...';
+      hideBanner();
+      clearLog();
+
+      addLog('▶ Konfigurálás indítása...', 'info');
+
+      try {
+        const res = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        data.output?.split('\n').forEach(line => {
+          if (!line.trim()) return;
+          const u = line.toUpperCase();
+          let cls = 'out';
+          if (u.includes('[INFO]')) cls = 'info';
+          if (u.includes('[SIKER]')) cls = 'ok';
+          if (u.includes('[ERROR]') || u.includes('HIBA')) cls = 'err';
+          addLog(line, cls);
+        });
+
+        data.success
+          ? showBanner('ok', '✅ Switch sikeresen konfigurálva!')
+          : showBanner('error', '❌ ' + (data.output?.split('\n').reverse().find(l => l.includes('[ERROR]')) || 'Hiba történt'));
+
+      } catch {
+        addLog('[ERROR] Flask szerver nem elérhető!', 'err');
+        addLog('[INFO]  Indítsd el: python app.py', 'info');
+        showBanner('error', '❌ A Python szerver nem fut! Indítsd el: python app.py');
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        document.getElementById('label').textContent = '⚡ Konfigurálás indítása';
+      }
+    }
+
+    function showBanner(t, m) {
+      const b = document.getElementById('banner');
+      b.className = t; b.textContent = m;
+    }
+    function hideBanner() { document.getElementById('banner').className = ''; }
+
+    function addLog(text, cls) {
+      const el = document.getElementById('log');
+      el.classList.add('visible');
+      const d = document.createElement('div');
+      d.className = 'l-' + cls;
+      d.textContent = text;
+      el.appendChild(d);
+      el.scrollTop = el.scrollHeight;
+    }
+    function clearLog() {
+      const el = document.getElementById('log');
+      el.innerHTML = '';
+      el.classList.remove('visible');
+    }
+  </script>
+</body>
+
+</html>
