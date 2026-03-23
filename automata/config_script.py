@@ -30,11 +30,13 @@ DEVICE = {
 #  FUTTATÁS – EZT NE MÓDOSÍTSD
 # ══════════════════════════════════════════════════
 
-def run(device_type=None, config_data=None):
+def run(target_ip=None, config_data=None):
     log = []
 
     base_commands = []
     
+    # A device_type-ot a globális beállításból vesszük, miután kikerült a webről a választó
+    device_type = DEVICE.get('device_type', 'cisco_ios_telnet')
     # SG300 ellenőrzés a specifikus parancsokhoz
     is_sg300 = device_type in ['cisco_s300', 'cisco_s300_telnet']
 
@@ -43,16 +45,24 @@ def run(device_type=None, config_data=None):
         if config_data.get('hostname'):
             base_commands.append("hostname {}".format(config_data['hostname']))
             
-        # 2. VLAN-ok létrehozása
+        # 2. VLAN-ok létrehozása és állapotuk
         vlan_list = []
         if config_data.get('vlans'):
+            vlan_state = config_data.get('vlan_state', 'up')
             # Vesszővel elválasztott azonosítók feldolgozása
             vlan_list = [v.strip() for v in config_data['vlans'].split(',') if v.strip()]
             for vid in vlan_list:
-                base_commands.append("vlan {}".format(vid))
+                base_commands.extend([
+                    "vlan {}".format(vid),
+                    " exit",
+                    "interface vlan {}".format(vid),
+                    " no shutdown" if vlan_state == 'up' else " shutdown",
+                    " exit"
+                ])
                 
-        # 3. Portok beállítása (Trunk + No shutdown)
+        # 3. Portok beállítása (Trunk + állapot)
         if config_data.get('ports'):
+            port_state = config_data.get('port_state', 'up')
             port_list = [p.strip() for p in config_data['ports'].split(',') if p.strip()]
             for port in port_list:
                 base_commands.extend([
@@ -64,60 +74,7 @@ def run(device_type=None, config_data=None):
                     base_commands.append(" switchport trunk allowed vlan add {}".format(','.join(vlan_list)))
                 
                 base_commands.extend([
-                    " no shutdown",
-                    " exit"
-                ])
-                
-        # 4. Jelszavak beállítása
-        pas_en = config_data.get('pass_enable')
-        pas_con = config_data.get('pass_console')
-        pas_vty = config_data.get('pass_vty')
-        
-        if pas_en or pas_con or pas_vty:
-            base_commands.append("service password-encryption")
-            
-        if pas_en:
-            # SG300 v1.4.x nem mindig támogatja az "enable secret"-et, csak az "enable password"-öt (azt a rendszer utólag titkosítja a service miatt)
-            if is_sg300:
-                base_commands.append("enable password {}".format(pas_en))
-            else:
-                base_commands.append("enable secret {}".format(pas_en))
-            
-        if pas_con:
-            if is_sg300:
-                # Az SG300 sokszor nem enged egyszerű "password" parancsot a vonalakon globális authentikáció nélkül.
-                # Ehelyett frissítjük a lokális beépített felhasználót, amivel a web gui-n és ssh-n is belepünk.
-                base_commands.extend([
-                    "username {} password {}".format(DEVICE.get('username', 'cisco'), pas_con),
-                    "line console",
-                    " login local",
-                    " exit"
-                ])
-            else:
-                base_commands.extend([
-                    "line console 0",
-                    " password {}".format(pas_con),
-                    " login",
-                    " exit"
-                ])
-            
-        if pas_vty:
-            if is_sg300:
-                # Szintén a lokális adatbázisból fogja kérni a jelszavakat SSH / Telnet esetén.
-                base_commands.extend([
-                    "username {} password {}".format(DEVICE.get('username', 'cisco'), pas_vty),
-                    "line telnet",
-                    " login local",
-                    " exit",
-                    "line ssh",
-                    " login local",
-                    " exit"
-                ])
-            else:
-                base_commands.extend([
-                    "line vty 0 15",
-                    " password {}".format(pas_vty),
-                    " login",
+                    " no shutdown" if port_state == 'up' else " shutdown",
                     " exit"
                 ])
     else:
@@ -131,20 +88,17 @@ def run(device_type=None, config_data=None):
         log.append("[ERROR] Nincs kiválasztva futtatandó parancs! Tölts ki legalább egy mezőt.")
         return {'success': False, 'output': '\n'.join(log)}
 
-    # Felülírjuk az eszöztípust és a portot a webről jövő adattal (Telnet = 23, SSH = 22)
-    if device_type:
-        DEVICE['device_type'] = device_type
-        if 'telnet' in device_type:
-            DEVICE['port'] = 23
-        else:
-            DEVICE['port'] = 22
+    # Készítünk egy másolatot a DEVICE paraméterekből, hogy ne írjuk felül globálisan
+    conn_params = DEVICE.copy()
+    if target_ip:
+        conn_params['host'] = target_ip
 
     try:
-        log.append("[INFO] Csatlakozás: {} @ {}:{} ...".format(DEVICE['device_type'], DEVICE['host'], DEVICE['port']))
+        log.append("[INFO] Csatlakozás: {} @ {}:{} ...".format(conn_params['device_type'], conn_params['host'], conn_params['port']))
 
-        conn = ConnectHandler(**DEVICE)
+        conn = ConnectHandler(**conn_params)
 
-        if DEVICE.get('secret'):
+        if conn_params.get('secret'):
             conn.enable()
             log.append("[INFO] Enable módba léptünk.")
 
