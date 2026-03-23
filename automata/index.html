@@ -273,12 +273,8 @@
 
   <div class="form-group">
     <div class="form-row">
-      <label class="main-label" for="device_type">Eszköz típusa</label>
-      <select id="device_type">
-        <option value="cisco_ios_telnet">Cisco IOS (Telnet)</option>
-        <option value="cisco_s300">Cisco SG300 (SSH)</option>
-        <option value="cisco_s300_telnet">Cisco SG300 (Telnet)</option>
-      </select>
+      <label class="main-label" for="target_ip">Eszköz IP címe</label>
+      <input type="text" id="target_ip" placeholder="Pl. 192.168.1.180">
     </div>
 
     <div class="form-row">
@@ -286,30 +282,25 @@
       <input type="text" id="cfg_hostname" placeholder="Pl. SW-Kozpont-01">
     </div>
 
-    <div class="form-row">
-      <label class="main-label" for="cfg_vlans">Létrehozandó VLAN-ok (opcionális)</label>
-      <label class="sub-label">Vesszővel elválasztva (pl. 10, 20, 100)</label>
-      <input type="text" id="cfg_vlans" placeholder="10, 20, 30...">
-    </div>
-
-    <div class="form-row">
-      <label class="main-label" for="cfg_ports">Trunk/No shut Portok (opcionális)</label>
-      <label class="sub-label">Vesszővel elválasztva (pl. gi1, gi2, fa0/2)</label>
-      <input type="text" id="cfg_ports" placeholder="GigabitEthernet1, GigabitEthernet2...">
-    </div>
-
     <div class="form-grid">
+      <div class="form-row" style="grid-column: 1 / -1;">
+        <label class="main-label" for="cfg_vlans">VLAN-ok (Létrehozás, opcionális)</label>
+        <label class="sub-label">Vesszővel elválasztva (pl. 10, 20)</label>
+        <input type="text" id="cfg_vlans" placeholder="10, 20, 30...">
+      </div>
+
       <div class="form-row">
-        <label class="main-label" for="cfg_pass_enable">Enable Jelszó</label>
-        <input type="password" id="cfg_pass_enable" placeholder="(Változatlan)">
+        <label class="main-label" for="cfg_ports">Portok (opcionális)</label>
+        <label class="sub-label">Vesszővel elválasztva (pl. gi1, fa0/2)</label>
+        <input type="text" id="cfg_ports" placeholder="gi1, gi2...">
       </div>
       <div class="form-row">
-        <label class="main-label" for="cfg_pass_console">Console Jelszó</label>
-        <input type="password" id="cfg_pass_console" placeholder="(Változatlan)">
-      </div>
-      <div class="form-row">
-        <label class="main-label" for="cfg_pass_vty">SSH/Telnet Jelszó</label>
-        <input type="password" id="cfg_pass_vty" placeholder="(Változatlan)">
+        <label class="main-label" for="cfg_port_state">Port Állapot</label>
+        <label class="sub-label">Fel vagy lekapcsolás</label>
+        <select id="cfg_port_state">
+          <option value="up">Felkapcsol</option>
+          <option value="down">Lekapcsol</option>
+        </select>
       </div>
     </div>
   </div>
@@ -330,21 +321,26 @@
 
       // Összeállítjuk a payload-ot a szövegmezőkből
       const payload = {
-        device_type: document.getElementById('device_type').value,
+        target_ip: document.getElementById('target_ip').value.trim(),
         config: {
           hostname: document.getElementById('cfg_hostname').value.trim(),
           vlans: document.getElementById('cfg_vlans').value.trim(),
+          vlan_state: 'up',
           ports: document.getElementById('cfg_ports').value.trim(),
-          pass_enable: document.getElementById('cfg_pass_enable').value,
-          pass_console: document.getElementById('cfg_pass_console').value,
-          pass_vty: document.getElementById('cfg_pass_vty').value
+          port_state: document.getElementById('cfg_port_state').value
         }
       };
 
-      // Van-e beállítva legalább egy dolog?
-      const hasConfig = Object.values(payload.config).some(val => val !== '');
+      // Van-e beállítva legalább egy dolog? (a state mezőkön kívül)
+      const hasConfig = payload.config.hostname !== '' || payload.config.vlans !== '' || payload.config.ports !== '';
+      
+      if (!payload.target_ip) {
+        showBanner('error', '❌ Kérlek add meg az eszköz IP címét!');
+        return;
+      }
+
       if (!hasConfig) {
-        showBanner('error', '❌ Kérlek tölts ki legalább egy konfigurációs paramétert vagy jelszót!');
+        showBanner('error', '❌ Kérlek tölts ki legalább egy konfigurációs paramétert (Hostname, VLAN vagy Port)!');
         return;
       }
 
